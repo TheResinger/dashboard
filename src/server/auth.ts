@@ -5,7 +5,8 @@ import {
   type NextAuthOptions,
 } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
-import DiscordProvider from "next-auth/providers/discord";
+import AzureAD from "next-auth/providers/azure-ad";
+import { AzureADProfile } from "next-auth/providers/azure-ad";
 
 import { env } from "@/env";
 import { db } from "@/server/db";
@@ -27,14 +28,14 @@ declare module "next-auth" {
     user: {
       id: string;
       // ...other properties
-      // role: UserRole;
+      roles: string;
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    // ...other properties
+    roles: string;
+  }
 }
 
 /**
@@ -43,14 +44,37 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    jwt: async ({ token, account }) => {
+      if (account?.id_token) {
+        const [header, payload, sig] = account.id_token.split(".");
+
+        const idToken = JSON.parse(
+          Buffer.from(payload!, "base64").toString("utf8"),
+        );
+
+        if(!idToken.roles){
+          idToken.roles = "";
+        }
+
+        token.roles = [...idToken.roles];
+      }
+      return token;
+    },
+    session: async ({ session, token }) => {
+      const newSession = {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub,
+          roles: token.roles,
+        },
+      };
+      return newSession;
+    },
   },
   adapter: DrizzleAdapter(db, {
     usersTable: users,
@@ -59,9 +83,10 @@ export const authOptions: NextAuthOptions = {
     verificationTokensTable: verificationTokens,
   }) as Adapter,
   providers: [
-    DiscordProvider({
-      clientId: env.DISCORD_CLIENT_ID,
-      clientSecret: env.DISCORD_CLIENT_SECRET,
+    AzureAD({
+      clientId: env.AZURE_AD_CLIENT_ID,
+      clientSecret: env.AZURE_AD_CLIENT_SECRET,
+      tenantId: env.AZURE_AD_TENANT_ID,
     }),
     /**
      * ...add more providers here.

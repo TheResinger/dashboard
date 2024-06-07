@@ -3,6 +3,11 @@ import "@/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 
 import { TRPCReactProvider } from "@/trpc/react";
+import NavBar from "./_components/navbar";
+
+import SessionProvider from "@/app/_components/SessionProvider";
+import { getServerSession } from "next-auth";
+import { ThemeProvider } from "./_components/ThemeProvider";
 
 export const metadata = {
   title: "Create T3 App",
@@ -10,16 +15,24 @@ export const metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <html lang="en" className={`${GeistSans.variable}`}>
-      <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
-      </body>
+      <SessionProvider>
+        <body>
+          <ThemeProvider attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange>
+            <NavBar />
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+          </ThemeProvider>
+        </body>
+      </SessionProvider>
     </html>
   );
 }
