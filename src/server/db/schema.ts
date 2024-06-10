@@ -12,7 +12,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { type AdapterAccount } from "next-auth/adapters";
-import { number } from "zod";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -41,34 +40,34 @@ export const posts = createTable(
   })
 );
 
-export const transactions = createTable(
-  "transaction",
-  {
-    transactionID: bigint("transactionID", { mode: "number" }).primaryKey(),
-    status: text("status").default("listing"),
-    created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    closing_date: timestamp("closing_date"),
-    total_gross_commission: float("total_gross_commission"),
-    team: varchar("team", { length: 255 }).notNull().references(() => teams.teamName),
-    teamid: bigint("teamid", { mode: "number" }).notNull().references(() => teams.fubTeamID),
-    peopleid: bigint("peopleid", { mode: "number" }),
-    closing_monthyear: text("closing_monthyear"),
-    closed_monthyear: text("closed_monthyear"),
-    zip: bigint("zip", { mode: "number" }),
-    sales_volume: float("sales_volume"),
-    address: text("address"),
-    split_commission: float("split_commission"),
-    team_leader: text("team_leader").references(() => agents.fubName),
-    company_dollar_contribution: float("company_dollar_contribution"),
-    commission_to_agents: float("commission_to_agents"),
-    other_income: float("other_income"),
-    lead_type: text("lead_type"),
-    dont_touch_admin_closing_update: text("dont_touch_admin_closing_update"),
-    dont_touch_admin_source: text("dont_touch_admin_source"),
-    dont_touch_admin_only: text("dont_touch_admin_only"),
-    LastUpdateInLocal: timestamp("LastUpdateInLocal"),
-  }
-)
+// export const transactions = createTable(
+//   "transaction",
+//   {
+//     transactionID: bigint("transactionID", { mode: "number" }).primaryKey(),
+//     status: text("status").default("listing"),
+//     created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+//     closing_date: timestamp("closing_date"),
+//     total_gross_commission: float("total_gross_commission"),
+//     team: varchar("team", { length: 255 }).notNull().references(() => teams.teamName),
+//     teamid: bigint("teamid", { mode: "number" }).notNull().references(() => teams.fubTeamID),
+//     peopleid: bigint("peopleid", { mode: "number" }),
+//     closing_monthyear: text("closing_monthyear"),
+//     closed_monthyear: text("closed_monthyear"),
+//     zip: bigint("zip", { mode: "number" }),
+//     sales_volume: float("sales_volume"),
+//     address: text("address"),
+//     split_commission: float("split_commission"),
+//     team_leader: text("team_leader").references(() => agents.fubName),
+//     company_dollar_contribution: float("company_dollar_contribution"),
+//     commission_to_agents: float("commission_to_agents"),
+//     other_income: float("other_income"),
+//     lead_type: text("lead_type"),
+//     dont_touch_admin_closing_update: text("dont_touch_admin_closing_update"),
+//     dont_touch_admin_source: text("dont_touch_admin_source"),
+//     dont_touch_admin_only: text("dont_touch_admin_only"),
+//     LastUpdateInLocal: timestamp("LastUpdateInLocal"),
+//   }
+// )
 
 export const users = createTable("user", {
   id: varchar("id", { length: 255 }).notNull().primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -79,37 +78,114 @@ export const users = createTable("user", {
     fsp: 3,
   }).default(sql`CURRENT_TIMESTAMP(3)`),
   image: varchar("image", { length: 255 }),
-  role: text('roles')
 });
-
-export const agents = createTable("agent", {
-  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-  robertslackID: bigint("robertslackID", { mode: "number" }),
-  fubID: bigint("fubID", { mode: "number" }),
-  bambooID: bigint("bambooID", { mode: "number" }),
-  brokermentID: bigint("brokermintID", { mode: "number" }),
-  displayName: text("displayName"),
-  firstName: text("firstName"),
-  lastName: text("lastName"),
-  preferredName: text("preferredName"),
-  Title: text("Title"),
-  employeeNumber: bigint("employeeNumber", { mode: "number" }),
-  brokermintEmail: text("brokermintEmail"),
-  fubName: text("fubName"),
-  email: text("email"),
-})
-
-export const teams = createTable("team", {
-  fubTeamID: bigint("fubTeamID", { mode: "number" }).primaryKey(),
-  teamName: text("teamName").notNull(),
-  teamLeadName: varchar("teamLeadName", { length: 256 }).references(() => agents.fubName),
-  teamLeadID: bigint("teamLeadId", { mode: "number" })
-})
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   sessions: many(sessions),
 }));
+
+export const agents = createTable("agent", {
+  id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
+  agentName: varchar("agentName", { length: 255 })
+})
+
+export const agentRelations = relations(agents, ({ many }) => ({
+  // teams: many(teams)
+  agentsToTeams: many(agentsToTeams)
+}))
+
+export const teams = createTable("team", {
+  id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
+  teamName: varchar("teamName", { length: 255 }),
+})
+
+export const teamsRelations = relations(teams, ({ many }) => ({
+  // agent: one(agents, {
+  //   fields: [teams.agentIDs],
+  //   references: [agents.id]
+  // })
+  agentsToTeams: many(agentsToTeams)
+}))
+
+export const agentsToTeams = createTable("agentsToTeams", {
+  agentId: bigint("agentId", { mode: "number" }).notNull().references(() => agents.id),
+  teamId: bigint("teamId", { mode: "number" }).notNull().references(() => teams.id),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.agentId, t.teamId] })
+}))
+
+export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
+  team: one(teams, {
+    fields: [agentsToTeams.teamId],
+    references: [teams.id]
+  }),
+  agent: one(agents, {
+    fields: [agentsToTeams.agentId],
+    references: [agents.id],
+  })
+}))
+
+// export const agents = createTable("agent", {
+//   id: bigint("id", { mode: "number" }).primaryKey().autoincrement().unique(),
+//   robertslackID: bigint("robertslackID", { mode: "number" }).unique(),
+//   fubID: bigint("fubID", { mode: "number" }).unique(),
+//   bambooID: bigint("bambooID", { mode: "number" }).unique(),
+//   brokermentID: bigint("brokermintID", { mode: "number" }).unique(),
+//   displayName: text("displayName"),
+//   firstName: text("firstName"),
+//   lastName: text("lastName"),
+//   preferredName: varchar("preferredName", { length: 255 }).unique(),
+//   Title: text("Title"),
+//   employeeNumber: bigint("employeeNumber", { mode: "number" }).unique(),
+//   brokermintEmail: text("brokermintEmail"),
+//   fubName: text("fubName"),
+//   email: text("email"),
+// })
+
+// export const agentsRelations = relations(agents, ({ many }) => ({
+//   teams: many(teams),
+// }))
+
+// export const teams = createTable("team", {
+//   fubTeamID: bigint("fubTeamID", { mode: "number" }).primaryKey(),
+//   teamName: text("teamName").notNull(),
+//   teamLeadName: varchar("teamLeadName", { length: 256 }).references(() => agents.fubName),
+//   teamLeadID: bigint("teamLeadId", { mode: "number" }).references(() => agents.fubID),
+//   agentIDs: bigint("agentIDs", { mode: "number" }).references(() => agents.fubID)
+// })
+
+// export const teamsRelations = relations(teams, ({ many, one }) => ({
+//   agentsToTeams: many(agentsToTeams),
+//   teamLeadName: one(agents, {
+//     fields: [teams.teamLeadName],
+//     references: [agents.preferredName]
+//   }),
+//   teamLeadID: one(agents, {
+//     fields: [teams.teamLeadID],
+//     references: [agents.fubID],
+//   })
+// }))
+
+// export const agentsToTeams = createTable("agentsToTeams", {
+//   agentID: bigint("agentID", { mode: "number" }).notNull().references(() => agents.fubID),
+//   teamID: bigint("teamID", { mode: "number" }).notNull().references(() => teams.fubTeamID),
+// },
+//   (t) => ({
+//     pk: primaryKey({ columns: [t.agentID, t.teamID] }),
+//   })
+// )
+
+// export const agentsToTeamsRelations = relations(agentsToTeams, ({ one, many }) => ({
+//   team: one(teams, {
+//     fields: [agentsToTeams.teamID],
+//     references: [teams.fubTeamID],
+//   }),
+//   agent: one(agents, {
+//     fields: [agentsToTeams.agentID],
+//     references: [agents.fubID],
+//   })
+// }))
 
 export const accounts = createTable(
   "account",
