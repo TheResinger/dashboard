@@ -6,21 +6,10 @@ import { redirect } from "next/navigation";
 
 export default async function Home() {
   // const hello = await api.post.hello({ text: "from tRPC" });
-  const teamData = await api.team.getAll();
-  const agentData = await api.agent.getAll();
-  const agentDataFromTeam = await api.agent.getByAgentName({ agentId: 2 });
+
   const session = await getServerAuthSession();
 
-  let userRole = session?.user.roles;
-
-  teamData.forEach(team => {
-    console.log(team.id)
-    let agentsInTeam = team.agentsToTeams;
-    agentsInTeam.forEach(agent => {
-      console.log(agent.agent.agentName)
-    })
-    // console.log(team.agentsToTeams)
-  })
+  const userRole = session?.user.roles;
 
   // agentData.forEach(agent => {
   //   console.log(agent)
@@ -36,19 +25,32 @@ export default async function Home() {
   if (userRole?.includes("DashboardAdmin")) correctRole = true;
   if (userRole?.includes("DashboardUser")) correctRole = true;
 
-
   if (!session) {
     redirect("/api/auth/signin");
   }
 
   if (session && !correctRole) {
-    redirect('/unauthorized');
+    redirect("/unauthorized");
   }
 
+  if (correctRole) {
+    const teamData = await api.team.getAll();
+    const agentData = await api.agent.getAll();
+    const agentDataFromTeam = await api.agent.getByAgentName({ agentId: 2 });
+
+    teamData.forEach((team) => {
+      console.log(team.id);
+      const agentsInTeam = team.agentsToTeams;
+      agentsInTeam.forEach((agent) => {
+        console.log(agent.agent.agentName);
+      });
+      // console.log(team.agentsToTeams)
+    });
+  }
 
   return (
     <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 bg-muted/40 p-4 md:gap-8 md:p-10">
       <Dashboard />
     </main>
-  )
+  );
 }

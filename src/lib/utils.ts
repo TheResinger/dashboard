@@ -9,6 +9,6 @@ export function convertToUSDFormat(number: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    //@ts-expect-error
+    //@ts-expect-error: I dont relaly know why its throwing an error in the first place
   }).format(parseInt(number));
 }

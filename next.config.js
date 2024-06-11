@@ -5,6 +5,16 @@
 await import("./src/env.js");
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  async rewrites() {
+    console.log("rewrites called");
+    return [
+      {
+        source: "/admin/:slug*",
+        destination: "/admin",
+      },
+    ];
+  },
+};
 
 export default config;

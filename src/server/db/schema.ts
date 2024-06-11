@@ -37,40 +37,14 @@ export const posts = createTable(
   (example) => ({
     createdByIdIdx: index("createdById_idx").on(example.createdById),
     nameIndex: index("name_idx").on(example.name),
-  })
+  }),
 );
 
-// export const transactions = createTable(
-//   "transaction",
-//   {
-//     transactionID: bigint("transactionID", { mode: "number" }).primaryKey(),
-//     status: text("status").default("listing"),
-//     created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-//     closing_date: timestamp("closing_date"),
-//     total_gross_commission: float("total_gross_commission"),
-//     team: varchar("team", { length: 255 }).notNull().references(() => teams.teamName),
-//     teamid: bigint("teamid", { mode: "number" }).notNull().references(() => teams.fubTeamID),
-//     peopleid: bigint("peopleid", { mode: "number" }),
-//     closing_monthyear: text("closing_monthyear"),
-//     closed_monthyear: text("closed_monthyear"),
-//     zip: bigint("zip", { mode: "number" }),
-//     sales_volume: float("sales_volume"),
-//     address: text("address"),
-//     split_commission: float("split_commission"),
-//     team_leader: text("team_leader").references(() => agents.fubName),
-//     company_dollar_contribution: float("company_dollar_contribution"),
-//     commission_to_agents: float("commission_to_agents"),
-//     other_income: float("other_income"),
-//     lead_type: text("lead_type"),
-//     dont_touch_admin_closing_update: text("dont_touch_admin_closing_update"),
-//     dont_touch_admin_source: text("dont_touch_admin_source"),
-//     dont_touch_admin_only: text("dont_touch_admin_only"),
-//     LastUpdateInLocal: timestamp("LastUpdateInLocal"),
-//   }
-// )
-
 export const users = createTable("user", {
-  id: varchar("id", { length: 255 }).notNull().primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
   emailVerified: timestamp("emailVerified", {
@@ -87,44 +61,111 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const agents = createTable("agent", {
   id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
-  agentName: varchar("agentName", { length: 255 })
-})
+  agentName: varchar("agentName", { length: 255 }),
+});
 
-export const agentRelations = relations(agents, ({ many }) => ({
+export const agentRelations = relations(agents, ({ many, one }) => ({
   // teams: many(teams)
-  agentsToTeams: many(agentsToTeams)
-}))
+  agentsToTeams: many(agentsToTeams),
+  agentsToTrans: many(agentsToTrans),
+}));
 
 export const teams = createTable("team", {
   id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
   teamName: varchar("teamName", { length: 255 }),
-})
+});
 
 export const teamsRelations = relations(teams, ({ many }) => ({
   // agent: one(agents, {
   //   fields: [teams.agentIDs],
   //   references: [agents.id]
   // })
-  agentsToTeams: many(agentsToTeams)
-}))
+  agentsToTeams: many(agentsToTeams),
+}));
 
-export const agentsToTeams = createTable("agentsToTeams", {
-  agentId: bigint("agentId", { mode: "number" }).notNull().references(() => agents.id),
-  teamId: bigint("teamId", { mode: "number" }).notNull().references(() => teams.id),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.agentId, t.teamId] })
-}))
+export const agentsToTeams = createTable(
+  "agentsToTeams",
+  {
+    agentId: bigint("agentId", { mode: "number" })
+      .notNull()
+      .references(() => agents.id),
+    teamId: bigint("teamId", { mode: "number" })
+      .notNull()
+      .references(() => teams.id),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.agentId, t.teamId] }),
+  }),
+);
 
 export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
   team: one(teams, {
     fields: [agentsToTeams.teamId],
-    references: [teams.id]
+    references: [teams.id],
   }),
   agent: one(agents, {
     fields: [agentsToTeams.agentId],
     references: [agents.id],
-  })
-}))
+  }),
+}));
+
+export const trans = createTable("transaction", {
+  transID: bigint("transID", { mode: "number" }).primaryKey(),
+  // status: text("status").default("listing"),
+  // created_at: timestamp("created_at")
+  //   .default(sql`CURRENT_TIMESTAMP`)
+  //   .notNull(),
+  // closing_date: timestamp("closing_date"),
+  // total_gross_commission: float("total_gross_commission"),
+  // closing_monthyear: text("closing_monthyear"),
+  // closed_monthyear: text("closed_monthyear"),
+  // zip: bigint("zip", { mode: "number" }),
+  // sales_volume: float("sales_volume"),
+  address: text("address"),
+  // split_commission: float("split_commission"),
+  // company_dollar_contribution: float("company_dollar_contribution"),
+  // commission_to_agents: float("commission_to_agents"),
+  // other_income: float("other_income"),
+  // lead_type: text("lead_type"),
+  // dont_touch_admin_closing_update: text("dont_touch_admin_closing_update"),
+  // dont_touch_admin_source: text("dont_touch_admin_source"),
+  // dont_touch_admin_only: text("dont_touch_admin_only"),
+  // LastUpdateInLocal: text("LastUpdateInLocal"),
+});
+
+export const transRelations = relations(trans, ({ many }) => ({
+  // agent: one(agents, {
+  //   fields: [teams.agentIDs],
+  //   references: [agents.id]
+  // })
+  agentsToTrans: many(agentsToTrans),
+}));
+
+export const agentsToTrans = createTable(
+  "agentsToTrans",
+  {
+    agentId: bigint("agentId", { mode: "number" })
+      .notNull()
+      .references(() => agents.id),
+    transId: bigint("transId", { mode: "number" })
+      .notNull()
+      .references(() => trans.transID),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.agentId, t.transId] }),
+  }),
+);
+
+export const agentsToTransRelations = relations(agentsToTrans, ({ one }) => ({
+  transaction: one(trans, {
+    fields: [agentsToTrans.transId],
+    references: [trans.transID],
+  }),
+  agent: one(agents, {
+    fields: [agentsToTrans.agentId],
+    references: [agents.id],
+  }),
+}));
 
 // export const agents = createTable("agent", {
 //   id: bigint("id", { mode: "number" }).primaryKey().autoincrement().unique(),
@@ -213,7 +254,7 @@ export const accounts = createTable(
       columns: [account.provider, account.providerAccountId],
     }),
     userIdIdx: index("account_userId_idx").on(account.userId),
-  })
+  }),
 );
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -233,7 +274,7 @@ export const sessions = createTable(
   },
   (session) => ({
     userIdIdx: index("session_userId_idx").on(session.userId),
-  })
+  }),
 );
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -249,5 +290,5 @@ export const verificationTokens = createTable(
   },
   (vt) => ({
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
+  }),
 );
