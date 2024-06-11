@@ -21,23 +21,6 @@ export const agentRouter = createTRPCRouter({
       },
     });
   }),
-  // getByTeamID: protectedProcedure
-  //     .input(z.object({ teamID: z.bigint() }))
-  //     .query(async ({ ctx, input }) => {
-  //         const agentTeams = await ctx.db.query.agents.findMany({
-  //             with: {
-  //                 agentsToTeams: {
-  //                     with: {
-  //                         team: {
-  //                             where: eq(id, input.teamID),
-  //                         }
-  //                     }
-  //                 }
-  //             }
-  //         })
-  //         if (!agentTeams) throw new TRPCError({ code: "NOT_FOUND" })
-  //         return agentTeams
-  //     }),
   getByAgentName: protectedProcedure
     .input(z.object({ agentId: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -48,10 +31,14 @@ export const agentRouter = createTRPCRouter({
       return agentName;
     }),
   create: protectedProcedure
-    .input(z.object({ agentName: z.string().min(1) }))
+    .input(z.object({ agentName: z.string().min(1), teamID: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.insert(agents).values({
+      const newUser = await ctx.db.insert(agents).values({
         agentName: input.agentName,
-      });
+      })
+      await ctx.db.insert(agentsToTeams).values({
+        agentId: newUser[0].insertId,
+        teamId: input.teamID
+      })
     }),
 });

@@ -14,5 +14,12 @@ export const teamRouter = createTRPCRouter({
                 }
             }
         });
-    })
+    }),
+    create: protectedProcedure
+        .input(z.object({ teamName: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            await ctx.db.insert(teams).values({
+                teamName: input.teamName
+            })
+        })
 })

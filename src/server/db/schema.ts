@@ -72,7 +72,7 @@ export const agentRelations = relations(agents, ({ many, one }) => ({
 
 export const teams = createTable("team", {
   id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
-  teamName: varchar("teamName", { length: 255 }),
+  teamName: varchar("teamName", { length: 255 }).notNull(),
 });
 
 export const teamsRelations = relations(teams, ({ many }) => ({
