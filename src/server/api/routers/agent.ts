@@ -15,9 +15,15 @@ export const agentRouter = createTRPCRouter({
       with: {
         agentsToTeams: {
           with: {
-            team: true,
+            team: true
           },
         },
+        agentsToGroups: {
+          with: {
+            group: true
+          }
+        },
+        agentsToHR: true
       },
     });
   }),

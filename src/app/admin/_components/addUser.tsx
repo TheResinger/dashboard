@@ -51,7 +51,16 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
       dynamicTyping: true,
       skipEmptyLines: true,
       step: (results) => {
-        console.log("row data:", results.data)
+        let { bambooID, bambooDisplayName, bambooFirstName, bambooLastName, bambooTitle, bambooEmployeeNumber, bambooTeam, brokermintID, brokermintEmail, robertslackID, robertSlackEmail, fubID, fubCreated, fubUpdated, fubName, fubEmail, fubPhone, fubRole, fubStatus, fubPauseLeadDistribution, fubGroups, fubTeamName }: AgentType = results.data
+        console.log(bambooID)
+        let groups
+        if (results.data.fubGroups) {
+          groups = results.data.fubGroups.split(", ")
+        } else {
+          groups = null
+        }
+        // let fubGroups = results.data.fubGroups.split(", ") || ""
+        console.log(groups)
       }
     })
   }

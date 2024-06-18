@@ -10,7 +10,7 @@ export default async function Home() {
   const session = await getServerAuthSession();
 
   const userRole = session?.user.roles;
-
+  let a
   // agentData.forEach(agent => {
   //   console.log(agent)
   //   let s = agent.agentsToTeams;
@@ -38,14 +38,16 @@ export default async function Home() {
     const agentData = await api.agent.getAll();
     const agentDataFromTeam = await api.agent.getByAgentName({ agentId: 2 });
 
-    teamData.forEach((team) => {
-      console.log(team.id);
-      const agentsInTeam = team.agentsToTeams;
-      agentsInTeam.forEach((agent) => {
-        console.log(agent.agent.agentName);
-      });
-      // console.log(team.agentsToTeams)
-    });
+    // teamData.forEach((team) => {
+    //   console.log(team.id);
+    //   const agentsInTeam = team.agentsToTeams;
+    //   agentsInTeam.forEach((agent) => {
+    //     console.log(agent.agent.agentName);
+    //   });
+    //   // console.log(team.agentsToTeams)
+    // });
+
+    
   }
 
   return (
