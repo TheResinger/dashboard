@@ -25,6 +25,7 @@ export default async function Debug() {
 
   if (correctRole) {
     teamData = await api.team.getAll();
+    // console.log(teamData)
   }
 
   return (

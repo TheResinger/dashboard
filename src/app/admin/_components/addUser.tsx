@@ -95,7 +95,7 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
 
   const teams = teamData
 
-  // console.log(teams)
+  console.log(teams)
 
   return (
     <>

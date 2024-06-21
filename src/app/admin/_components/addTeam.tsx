@@ -7,17 +7,8 @@ import {
     CardHeader,
     CardTitle,
 } from "@/app/_components/ui/card";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/app/_components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/app/_components/ui/form";
 import { Input } from "@/app/_components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/app/_components/ui/select";
-import { TeamType } from "@/lib/tableColumns";
-import { Rabbit, X } from "lucide-react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { type FC } from 'react'

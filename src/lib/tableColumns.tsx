@@ -3,7 +3,8 @@
 export type TeamType = {
     id: number;
     teamName: string;
-    agentsToTeams: {
+    teamState: string | null;
+    teamsToAgents: {
         agentId: number;
         teamId: number;
         agent: {

@@ -23,25 +23,6 @@ import { type AdapterAccount } from 'next-auth/adapters';
  */
 export const createTable = mysqlTableCreator((name) => `dashboard_${name}`);
 
-export const posts = createTable(
-  'post',
-  {
-    id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
-    name: varchar('name', { length: 256 }),
-    createdById: varchar('createdById', { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    createdAt: timestamp('created_at')
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp('updatedAt').onUpdateNow(),
-  },
-  (example) => ({
-    createdByIdIdx: index('createdById_idx').on(example.createdById),
-    nameIndex: index('name_idx').on(example.name),
-  }),
-);
-
 export const users = createTable('user', {
   id: varchar('id', { length: 255 })
     .notNull()
@@ -62,96 +43,95 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const agents = createTable('agents', {
-  id: bigint('id', { mode: 'number' }).primaryKey().notNull().autoincrement(),
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull().autoincrement(), // FUB Agent ID
+  created: datetime('created'),
+  updated: datetime('updated'),
   agentName: varchar('agentName', { length: 256 }),
+  agentEmail: varchar('agentEmail', { length: 256 }),
+  agentPhone: varchar('agentPhone', { length: 14 }),
+  agentRole: varchar('agentRole', { length: 6, enum: ['Agent', 'Lender', 'Broker'] }),
+  agentStatus: varchar('agentStatus', { length: 7, enum: ['Active', 'Deleted', 'Invited'] }),
+  agentPauseLead: boolean('agentPauseLead')
 })
 
-export const hrData = createTable('hrData', {
-  id: bigint('id', { mode: 'number' }).primaryKey().notNull(),
-  employeeName: varchar('employeeName', { length: 256 }),
-  employeeID: bigint('employeeID', { mode: 'number' })
-})
-
-export const teams = createTable('team', {
-  id: bigint('id', { mode: 'number' }).notNull().primaryKey().autoincrement(),
+export const fubTeams = createTable('fubTeams', {
+  id: bigint('id', { mode: 'number' }).notNull().primaryKey().autoincrement(), // FUB Team ID
   teamName: varchar('teamName', { length: 255 }).notNull(),
+  teamState: varchar('teamState', { length: 2, enum: ['FL', 'GA', 'CO', 'TX', 'ID'] })
 });
 
-export const groups = createTable('groups', {
+export const fubGroups = createTable('fubGroups', {
   id: bigint('id', { mode: 'number' }).primaryKey().notNull(), //fub group id
   groupName: varchar('groupName', { length: 256 }), //fub group name
-  distributionType: varchar('distributionType', { length: 256, enum: ['Round Robin', 'First To Claim'] }),
+  groupDistributionType: varchar('distributionType', { length: 256, enum: ['round-robin', 'first-to-claim'] }),
+  groupState: varchar('groupState', { length: 2, enum: ['FL', 'GA', 'CO', 'TX', 'ID'] })
+})
+
+export const transactions = createTable('transactions', {
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull(), // brokermint transaction ID
+  status: varchar('status', { length: 10, enum: ['closed', 'cancelled', 'listing'] }),
+  created_at: datetime('created_at'),
+  closing_date: datetime('closing_date'),
 
 })
 
 export const agentRelations = relations(agents, ({ many }) => ({
-  agentsToGroups: many(agentsToGroups),
-  agentsToHR: many(agentsToHR),
-  agentsToTeams: many(agentsToTeams)
+  groupsToAgents: many(groupsToAgents),
+  // agentsToHR: many(agentsToHR),
+  teamsToAgents: many(teamsToAgents)
 }))
 
-export const hrRelations = relations(hrData, ({ many }) => ({
-  agentsToHR: many(agentsToHR)
-}))
-
-export const teamsRelations = relations(teams, ({ many }) => ({
-  agentsToTeams: many(agentsToTeams)
+export const teamsRelations = relations(fubTeams, ({ many }) => ({
+  teamsToAgents: many(teamsToAgents)
 }));
 
-export const groupRelations = relations(groups, ({ many }) => ({
-  agentsToGroups: many(agentsToGroups)
+export const fubGroupRelations = relations(fubGroups, ({ many }) => ({
+  groupsToAgents: many(groupsToAgents),
 }))
 
-export const agentsToGroups = createTable('agentsToGroups', {
+export const groupsToAgents = createTable('groupsToAgents', {
   agentId: bigint('agentId', { mode: 'number' }).notNull().references(() => agents.id),
-  groupId: bigint('groupId', { mode: 'number' }).notNull().references(() => groups.id)
+  groupId: bigint('groupId', { mode: 'number' }).notNull().references(() => fubGroups.id)
 }, (t) => ({
   pk: primaryKey({ columns: [t.agentId, t.groupId] })
 }))
 
-export const agentsToHR = createTable('agentsToHR', {
+export const teamsToAgents = createTable('teamsToAgents', {
   agentId: bigint('agentId', { mode: 'number' }).notNull().references(() => agents.id),
-  hrDataID: bigint('hrDataID', { mode: 'number' }).notNull().references(() => hrData.id),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.agentId, t.hrDataID] })
-}))
-
-export const agentsToTeams = createTable('agentsToTeams', {
-  agentId: bigint('agentId', { mode: 'number' }).notNull().references(() => agents.id),
-  teamId: bigint('teamId', { mode: 'number' }).notNull().references(() => teams.id),
+  teamId: bigint('teamId', { mode: 'number' }).notNull().references(() => fubTeams.id),
 }, (t) => ({
   pk: primaryKey({ columns: [t.agentId, t.teamId] }),
 }));
 
-export const agentsToGroupsRelations = relations(agentsToGroups, ({ one }) => ({
-  group: one(groups, {
-    fields: [agentsToGroups.groupId],
-    references: [groups.id]
+export const groupsToAgentsRelations = relations(groupsToAgents, ({ one }) => ({
+  group: one(fubGroups, {
+    fields: [groupsToAgents.groupId],
+    references: [fubGroups.id]
   }),
   agent: one(agents, {
-    fields: [agentsToGroups.agentId],
+    fields: [groupsToAgents.agentId],
     references: [agents.id]
   })
 }))
 
-export const agentsToHRRelations = relations(agentsToHR, ({ one }) => ({
-  hr: one(hrData, {
-    fields: [agentsToHR.hrDataID],
-    references: [hrData.id]
-  }),
-  agent: one(agents, {
-    fields: [agentsToHR.agentId],
-    references: [agents.id]
-  })
-}))
+// export const agentsToHRRelations = relations(agentsToHR, ({ one }) => ({
+//   hr: one(hrData, {
+//     fields: [agentsToHR.hrDataID],
+//     references: [hrData.id]
+//   }),
+//   agent: one(agents, {
+//     fields: [agentsToHR.agentId],
+//     references: [agents.id]
+//   })
+// }))
 
-export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
-  team: one(teams, {
-    fields: [agentsToTeams.teamId],
-    references: [teams.id],
+export const teamsToAgentsRelations = relations(teamsToAgents, ({ one }) => ({
+  team: one(fubTeams, {
+    fields: [teamsToAgents.teamId],
+    references: [fubTeams.id],
   }),
   agent: one(agents, {
-    fields: [agentsToTeams.agentId],
+    fields: [teamsToAgents.agentId],
     references: [agents.id],
   }),
 }));
@@ -285,7 +265,7 @@ export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
 // })
 
 // export const teamsRelations = relations(teams, ({ many, one }) => ({
-//   agentsToTeams: many(agentsToTeams),
+//   teamsToAgents: many(teamsToAgents),
 //   teamLeadName: one(agents, {
 //     fields: [teams.teamLeadName],
 //     references: [agents.preferredName]
@@ -296,7 +276,7 @@ export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
 //   })
 // }))
 
-// export const agentsToTeams = createTable('agentsToTeams', {
+// export const teamsToAgents = createTable('teamsToAgents', {
 //   agentID: bigint('agentID', { mode: 'number' }).notNull().references(() => agents.fubID),
 //   teamID: bigint('teamID', { mode: 'number' }).notNull().references(() => teams.fubTeamID),
 // },
@@ -305,13 +285,13 @@ export const agentsToTeamsRelations = relations(agentsToTeams, ({ one }) => ({
 //   })
 // )
 
-// export const agentsToTeamsRelations = relations(agentsToTeams, ({ one, many }) => ({
+// export const teamsToAgentsRelations = relations(teamsToAgents, ({ one, many }) => ({
 //   team: one(teams, {
-//     fields: [agentsToTeams.teamID],
+//     fields: [teamsToAgents.teamID],
 //     references: [teams.fubTeamID],
 //   }),
 //   agent: one(agents, {
-//     fields: [agentsToTeams.agentID],
+//     fields: [teamsToAgents.agentID],
 //     references: [agents.fubID],
 //   })
 // }))

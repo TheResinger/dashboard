@@ -4,8 +4,8 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { agents, agentsToTeams } from "@/server/db/schema";
-import { teams } from "@/server/db/schema";
+import { agents, teamsToAgents } from "@/server/db/schema";
+// import { teams } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -13,17 +13,16 @@ export const agentRouter = createTRPCRouter({
   getAll: protectedProcedure.query(({ ctx }) => {
     return ctx.db.query.agents.findMany({
       with: {
-        agentsToTeams: {
+        teamsToAgents: {
           with: {
             team: true
           },
         },
-        agentsToGroups: {
+        groupsToAgents: {
           with: {
             group: true
           }
-        },
-        agentsToHR: true
+        }
       },
     });
   }),
@@ -42,7 +41,7 @@ export const agentRouter = createTRPCRouter({
       const newUser = await ctx.db.insert(agents).values({
         agentName: input.agentName,
       })
-      await ctx.db.insert(agentsToTeams).values({
+      await ctx.db.insert(teamsToAgents).values({
         agentId: newUser[0].insertId,
         teamId: input.teamID
       })
