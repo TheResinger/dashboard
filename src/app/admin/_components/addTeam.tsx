@@ -20,6 +20,7 @@ interface addTeamProps {
 }
 
 const formSchema = z.object({
+    teamId: z.number().min(1, { message: "Please enter a valid team ID" }),
     teamName: z.string().min(1, { message: "Please enter a valid team name" }),
 })
 

@@ -36,9 +36,10 @@ export const agentRouter = createTRPCRouter({
       return agentName;
     }),
   create: protectedProcedure
-    .input(z.object({ agentName: z.string().min(1), teamID: z.number() }))
+    .input(z.object({ agentName: z.string().min(1), teamID: z.number(), agentId: z.number().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const newUser = await ctx.db.insert(agents).values({
+        id: input.agentId,
         agentName: input.agentName,
       })
       await ctx.db.insert(teamsToAgents).values({

@@ -30,6 +30,7 @@ interface addUserProps {
 }
 
 const formSchema = z.object({
+  agentId: z.number().min(1, { message: "Please enter a valid fubID" }),
   agentName: z.string().min(1, { message: "Please enter a valid username" }),
   teamID: z.string().min(1) || z.number()
 })
@@ -68,6 +69,7 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      agentId: 0,
       agentName: "",
       teamID: "",
     },

@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/api/trpc";
 import { fubTeams } from '@/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 
 export const teamRouter = createTRPCRouter({
+    // Get all teams
     getAll: protectedProcedure.query(({ ctx }) => {
         return ctx.db.query.fubTeams.findMany({
             with: {
@@ -15,11 +17,30 @@ export const teamRouter = createTRPCRouter({
             }
         });
     }),
+
+    // Create a new team
     create: protectedProcedure
-        .input(z.object({ teamName: z.string().min(1) }))
+        .input(z.object({ teamName: z.string().min(1), teamId: z.number().min(1) }))
         .mutation(async ({ ctx, input }) => {
             await ctx.db.insert(fubTeams).values({
+                id: input.teamId,
                 teamName: input.teamName
             })
-        })
+        }),
+
+    // Get a specific team based on its ID
+    getOne: protectedProcedure
+        .input(z.object({ teamId: z.number().min(1) }))
+        .query(async ({ ctx, input }) => {
+            return ctx.db.query.fubTeams.findMany({
+                where: eq(fubTeams.id, input.teamId),
+                with: {
+                    teamsToAgents: {
+                        with: {
+                            agent: true
+                        }
+                    }
+                }
+            })
+        }),
 })
