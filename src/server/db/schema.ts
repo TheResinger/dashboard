@@ -11,6 +11,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { type AdapterAccount } from 'next-auth/adapters';
@@ -43,7 +44,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const agents = createTable('agents', {
-  id: bigint('id', { mode: 'number' }).primaryKey().notNull(), // FUB Agent ID
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull().autoincrement(),
+  agentId: bigint('agentId', { mode: 'number' }).notNull(),// FUB Agent ID
+  agentState: varchar('teamState', { length: 2, enum: ['FL', 'GA', 'CO', 'TX', 'ID'] }),
   created: datetime('created'),
   updated: datetime('updated'),
   agentName: varchar('agentName', { length: 256 }),
@@ -52,23 +55,30 @@ export const agents = createTable('agents', {
   agentRole: varchar('agentRole', { length: 6, enum: ['Agent', 'Lender', 'Broker'] }),
   agentStatus: varchar('agentStatus', { length: 7, enum: ['Active', 'Deleted', 'Invited'] }),
   agentPauseLead: boolean('agentPauseLead')
-})
+}, (a) => ({
+  unq: unique().on(a.agentId, a.agentState)
+}))
 
 export const fubTeams = createTable('fubTeams', {
-  id: bigint('id', { mode: 'number' }).notNull().primaryKey(), // FUB Team ID
+  id: bigint('id', { mode: 'number' }).notNull().primaryKey().autoincrement(),
+  teamId: bigint('teamId', { mode: 'number' }).notNull(), // FUB Team ID
   teamName: varchar('teamName', { length: 255 }).notNull(),
   teamState: varchar('teamState', { length: 2, enum: ['FL', 'GA', 'CO', 'TX', 'ID'] })
-});
+}, (t) => ({
+  unq: unique().on(t.teamId, t.teamState)
+}));
 
 export const fubGroups = createTable('fubGroups', {
-  id: bigint('id', { mode: 'number' }).primaryKey().notNull(), //fub group id
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull().autoincrement(),
+  groupId: bigint('groupId', { mode: 'number' }).notNull(), //fub group id
   groupName: varchar('groupName', { length: 256 }), //fub group name
   groupDistributionType: varchar('distributionType', { length: 256, enum: ['round-robin', 'first-to-claim'] }),
   groupState: varchar('groupState', { length: 2, enum: ['FL', 'GA', 'CO', 'TX', 'ID'] })
 })
 
 export const transactions = createTable('transactions', {
-  id: bigint('id', { mode: 'number' }).primaryKey().notNull(), // brokermint transaction ID
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull().autoincrement(),
+  transactionId: bigint('transactionId', { mode: 'number' }).notNull(), // brokermint transaction ID
   status: varchar('status', { length: 10, enum: ['closed', 'cancelled', 'listing'] }),
   created_at: datetime('created_at'),
   closing_date: datetime('closing_date'),
@@ -104,6 +114,7 @@ export const groupsToAgents = createTable('groupsToAgents', {
 }))
 
 export const teamsToAgents = createTable('teamsToAgents', {
+  id: bigint('id', { mode: 'number' }).notNull().primaryKey().autoincrement(),
   agentId: bigint('agentId', { mode: 'number' }).notNull().references(() => agents.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   teamId: bigint('teamId', { mode: 'number' }).notNull().references(() => fubTeams.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
 }, (t) => ({
@@ -156,11 +167,11 @@ export const teamsToAgentsRelations = relations(teamsToAgents, ({ one }) => ({
 export const teamLeaderRelations = relations(teamLeader, ({ one }) => ({
   team: one(fubTeams, {
     fields: [teamLeader.teamId],
-    references: [fubTeams.id]
+    references: [fubTeams.id],
   }),
   agent: one(agents, {
     fields: [teamLeader.agentId],
-    references: [agents.id]
+    references: [agents.id],
   })
 }))
 

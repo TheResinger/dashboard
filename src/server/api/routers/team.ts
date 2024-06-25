@@ -13,6 +13,11 @@ export const teamRouter = createTRPCRouter({
                     with: {
                         agent: true
                     }
+                },
+                teamLeader: {
+                    with: {
+                        agent: true
+                    }
                 }
             }
         });
@@ -20,11 +25,16 @@ export const teamRouter = createTRPCRouter({
 
     // Create a new team
     create: protectedProcedure
-        .input(z.object({ teamName: z.string().min(1), teamId: z.number().min(1) }))
+        .input(z.object({ teamId: z.number().min(1), teamName: z.string().min(1), teamState: z.enum(["FL", "GA", "CO", "TX", "ID"]) }))
         .mutation(async ({ ctx, input }) => {
             await ctx.db.insert(fubTeams).values({
-                id: input.teamId,
-                teamName: input.teamName
+                teamId: input.teamId,
+                teamName: input.teamName,
+                teamState: input.teamState
+            }).onDuplicateKeyUpdate({
+                set: {
+                    teamName: input.teamName
+                }
             })
         }),
 

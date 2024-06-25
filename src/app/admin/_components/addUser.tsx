@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/_components/ui/select";
-import { AgentType, TeamType } from "@/lib/tableColumns";
+import { TeamType } from "@/lib/tableColumns";
 import { Rabbit, X } from "lucide-react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -24,52 +24,58 @@ import { useState, type FC } from 'react'
 import { z } from "zod";
 import { api } from "@/trpc/react";
 import Papa from "papaparse"
+import { toast } from "@/app/_components/ui/use-toast";
 
 interface addUserProps {
   teamData: TeamType[] | null
 }
 
 const formSchema = z.object({
-  agentId: z.number().min(1, { message: "Please enter a valid fubID" }),
+  agentId: z.string().min(1, { message: "Please enter a valid fubID" }),
   agentName: z.string().min(1, { message: "Please enter a valid username" }),
   teamID: z.string().min(1) || z.number()
 })
 
 const addUser: FC<addUserProps> = ({ teamData }) => {
 
-  const importAgents = (e: React.FormEvent<HTMLInputElement>) => {
-    const target = e.target as HTMLInputElement & {
-      files: FileList;
-    }
-    const file = target.files[0]!
+  const [stateAgentName, setStateAgentName] = useState("");
+  const [stateAgentId, setStateAgentId] = useState("");
+  const [stateTeamId, setStateTeamId] = useState("");
+  let teams = teamData
+  // console.log(teams)
+  // const importAgents = (e: React.FormEvent<HTMLInputElement>) => {
+  //   const target = e.target as HTMLInputElement & {
+  //     files: FileList;
+  //   }
+  //   const file = target.files[0]!
 
-    parseAgentCSV(file);
-  }
+  //   parseAgentCSV(file);
+  // }
 
-  const parseAgentCSV = (csvFile: File): void => {
-    Papa.parse<AgentType>(csvFile, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true,
-      step: (results) => {
-        let { bambooID, bambooDisplayName, bambooFirstName, bambooLastName, bambooTitle, bambooEmployeeNumber, bambooTeam, brokermintID, brokermintEmail, robertslackID, robertSlackEmail, fubID, fubCreated, fubUpdated, fubName, fubEmail, fubPhone, fubRole, fubStatus, fubPauseLeadDistribution, fubGroups, fubTeamName }: AgentType = results.data
-        console.log(bambooID)
-        let groups
-        if (results.data.fubGroups) {
-          groups = results.data.fubGroups.split(", ")
-        } else {
-          groups = null
-        }
-        // let fubGroups = results.data.fubGroups.split(", ") || ""
-        console.log(groups)
-      }
-    })
-  }
+  // const parseAgentCSV = (csvFile: File): void => {
+  //   Papa.parse<AgentType>(csvFile, {
+  //     header: true,
+  //     dynamicTyping: true,
+  //     skipEmptyLines: true,
+  //     step: (results) => {
+  //       let { bambooID, bambooDisplayName, bambooFirstName, bambooLastName, bambooTitle, bambooEmployeeNumber, bambooTeam, brokermintID, brokermintEmail, robertslackID, robertSlackEmail, fubID, fubCreated, fubUpdated, fubName, fubEmail, fubPhone, fubRole, fubStatus, fubPauseLeadDistribution, fubGroups, fubTeamName }: AgentType = results.data
+  //       console.log(bambooID)
+  //       let groups
+  //       if (results.data.fubGroups) {
+  //         groups = results.data.fubGroups.split(", ")
+  //       } else {
+  //         groups = null
+  //       }
+  //       // let fubGroups = results.data.fubGroups.split(", ") || ""
+  //       console.log(groups)
+  //     }
+  //   })
+  // }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      agentId: 0,
+      agentId: "0",
       agentName: "",
       teamID: "",
     },
@@ -77,27 +83,41 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
-
-    const dbObject = {
-      ...values,
-      teamID: parseInt(values.teamID)
+    const { agentId, agentName, teamID } = values
+    setStateAgentName(agentName);
+    setStateAgentId(agentId);
+    setStateTeamId(values.teamID);
+    const team = teams!.find(t => t.id === parseInt(teamID))
+    if (team && ["FL", "GA", "CO", "TX", "ID"].includes(team.teamState as "FL" | "GA" | "CO" | "TX" | "ID")) {
+      const agentState = team.teamState as "FL" | "GA" | "CO" | "TX" | "ID";
+      createAgent.mutate({
+        agentName: agentName,
+        agentId: parseInt(agentId),
+        teamId: parseInt(teamID),
+        agentState: agentState
+      })
     }
-    createAgent.mutate({
-      ...dbObject
-    })
   }
 
   const createAgent = api.agent.create.useMutation(
     {
       onSuccess: () => {
-        console.log("added user")
+        toast({
+          title: "Agent created",
+          description: `The Agent: ${stateAgentName} with id: ${stateAgentId} has been created successfully and added to team: ${stateTeamId}.`,
+        })
+        form.reset();
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `There was a problem creating the team. ${error.message}`,
+        })
       }
     }
   )
 
-  const teams = teamData
-
-  console.log(teams)
 
   return (
     <>
@@ -108,12 +128,12 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
               <CardTitle>Add a User</CardTitle>
             </CardHeader>
             <CardContent>
-              <fieldset className="grid gap-6 rounded-lg border p-4">
+              <fieldset className="grid grid-cols-3 gap-3 rounded-lg border p-4">
                 <legend className="-ml-1 px-1 text-sm font-medium">
                   Properties
                 </legend>
                 <FormField control={form.control} name="agentName" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-3">
                     <div className="grid gap-3">
                       <FormLabel>Agent Name</FormLabel>
                       <FormControl>
@@ -123,64 +143,64 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Enter the Agents Name
-                      </FormDescription>
                       <FormMessage />
                     </div>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="teamID" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-2">
                     <div className="grid gap-3">
-                      <FormLabel>Team Name</FormLabel>
+                      <FormLabel>
+                        <div>
+                          <div>Team Name</div>
+                        </div>
+                      </FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="items-start [&_[data-description]]:hidden w-full">
                             <SelectValue placeholder="Select a Team" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="justify-between">
                           {teams ? (
                             <>
                               {
                                 teams.map((team) => {
-                                  if (team.id === 1) {
-                                    return (<SelectItem value="1">
-                                      <div className="flex items-start gap-3 text-muted-foreground">
-                                        <X className="size-5" />
-                                        <div className="grid gap-0.5">
-                                          <p>
-                                            <span className="font-medium text-foreground">
-                                              No Team
-                                            </span>
-                                          </p>
+                                  return (<SelectItem key={team.id} value={team.id.toString()}>
+                                    <div className="flex items-start gap-3 text-muted-foreground">
+                                      <Rabbit className="size-5" />
+                                      <div className="grid gap-0.5">
+                                        <div>
+                                          <span className="font-medium text-foreground">
+                                            {team.teamName} : {team.teamState}
+                                          </span>
                                         </div>
                                       </div>
-                                    </SelectItem>)
-                                  } else {
-                                    return (<SelectItem value={team.id.toString()}>
-                                      <div className="flex items-start gap-3 text-muted-foreground">
-                                        <Rabbit className="size-5" />
-                                        <div className="grid gap-0.5">
-                                          <p>
-                                            <span className="font-medium text-foreground">
-                                              {team.teamName}
-                                            </span>
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </SelectItem>)
-                                  }
-                                })
+                                    </div>
+                                  </SelectItem>)
+                                }
+                                )
                               }
                             </>
                           ) : <></>}
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        Select the team to add the agent to.
-                      </FormDescription>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="agentId" render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <div className="grid gap-3">
+                      <FormLabel>FUB ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter the agents name"
+                          className="w-full"
+                          type="number"
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </div>
                   </FormItem>
@@ -190,7 +210,7 @@ const addUser: FC<addUserProps> = ({ teamData }) => {
             </CardContent>
             <CardFooter className="border-t px-6 py-4 justify-between gap-6">
               <Button type="submit">Save</Button>
-              <Input type="file" onChange={importAgents} />
+              {/* <Input type="file" onChange={importAgents} /> */}
             </CardFooter>
           </Card >
         </form >

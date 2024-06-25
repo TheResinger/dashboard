@@ -1,3 +1,4 @@
+import { Toaster } from "../_components/ui/toaster";
 import Navbar from "./_components/navbar";
 
 export default async function AdminLayout({
@@ -16,6 +17,7 @@ export default async function AdminLayout({
           {children}
         </div>
       </main>
+      <Toaster />
     </div>
   );
 }
